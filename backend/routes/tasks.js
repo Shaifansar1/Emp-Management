@@ -29,7 +29,6 @@ router.post("/", auth, async (req, res) => {
       creatorId: req.user._id,
     });
 
-    // Populate before emitting
     const populatedTask = await Task.findById(task._id)
       .populate("assigneeId", "name email")
       .populate("creatorId", "name email");
@@ -46,13 +45,11 @@ router.put("/:id", auth, async (req, res) => {
     const { id } = req.params;
     let { title, description, status, priority, assigneeId } = req.body;
 
-    // Normalize assigneeId
     if (!assigneeId) assigneeId = null;
 
     const task = await Task.findById(id);
     if (!task) return res.status(404).json({ message: "Task not found" });
 
-    // Role check
     if (
       !["SUPER_USER", "ADMIN"].includes(req.user.role) &&
       ![task.creatorId?.toString(), task.assigneeId?.toString()].includes(
@@ -62,7 +59,6 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    // Only update allowed fields
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (status !== undefined) task.status = status;
@@ -72,7 +68,6 @@ router.put("/:id", auth, async (req, res) => {
     task.updatedAt = Date.now();
     await task.save();
 
-    // ✅ Correct populate (query again after save)
     const populated = await Task.findById(task._id)
       .populate("assigneeId", "name email")
       .populate("creatorId", "name email");
